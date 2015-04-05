@@ -325,6 +325,35 @@ class WindowDataLayer : public BasePrefetchingDataLayer<Dtype> {
   vector<std::pair<std::string, Datum > > image_database_cache_;
 };
 
+template <typename Dtype>
+class LIBSVMDataLayer : public BasePrefetchingDataLayer<Dtype> {
+ public:
+  explicit LIBSVMDataLayer(const LayerParameter& param)
+      : BasePrefetchingDataLayer<Dtype>(param) {}
+  virtual ~LIBSVMDataLayer();
+  virtual void DataLayerSetUp(const vector<Blob<Dtype>*>& bottom,
+      vector<Blob<Dtype>*>* top);
+
+  virtual inline const char* type() const { return "LIBSVM_DATA"; }
+//  virtual inline LayerParameter_LayerType type() const {
+//    return LayerParameter_LayerType_LIBSVM_DATA;
+//  }
+  virtual inline int ExactNumBottomBlobs() const { return 0; }
+  virtual inline int ExactNumTopBlobs() const { return 2; }
+
+ protected:
+  shared_ptr<Caffe::RNG> prefetch_rng_;
+  virtual void ShuffleAccessOrder();
+  virtual void InternalThreadEntry();
+
+  /// all data are stored into `data_` and `labels_`
+  vector<shared_ptr<Datum> > data_;
+  vector<float> labels_;
+  int pos_;
+  /// Determine accessing order for shuffling
+  vector<unsigned int> access_order_;
+};
+
 }  // namespace caffe
 
 #endif  // CAFFE_DATA_LAYERS_HPP_

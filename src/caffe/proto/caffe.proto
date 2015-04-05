@@ -332,6 +332,7 @@ message LayerParameter {
   optional TanHParameter tanh_param = 127;
   optional ThresholdParameter threshold_param = 128;
   optional WindowDataParameter window_data_param = 129;
+  optional LIBSVMDataParameter libsvm_data_param = 132;
 }
 
 // Message that stores parameters used to apply transformation
@@ -799,6 +800,7 @@ message V1LayerParameter {
     IMAGE_DATA = 12;
     INFOGAIN_LOSS = 13;
     INNER_PRODUCT = 14;
+    LIBSVM_DATA = 40;
     LRN = 15;
     MEMORY_DATA = 29;
     MULTINOMIAL_LOGISTIC_LOSS = 16;
@@ -859,6 +861,8 @@ message V1LayerParameter {
   optional TransformationParameter transform_param = 36;
   optional LossParameter loss_param = 42;
   optional V0LayerParameter layer = 1;
+  optional LIBSVMDataParameter libsvm_data_param = 43;
+
 }
 
 // DEPRECATED: V0LayerParameter is the old way of specifying layer parameters
@@ -964,4 +968,12 @@ message PReLUParameter {
   optional FillerParameter filler = 1;
   // Whether or not slope paramters are shared across channels.
   optional bool channel_shared = 2 [default = false];
+}
+
+// Message that stores parameters used by LIBSVMDataLayer
+message LIBSVMDataParameter {
+  required string source = 1; // path to libsvm input text file
+  optional uint32 batch_size = 2;
+  required uint32 channels = 3; // number of features
+  optional bool shuffle = 4 [default = false];
 }
