@@ -332,9 +332,9 @@ class LIBSVMDataLayer : public BasePrefetchingDataLayer<Dtype> {
       : BasePrefetchingDataLayer<Dtype>(param) {}
   virtual ~LIBSVMDataLayer();
   virtual void DataLayerSetUp(const vector<Blob<Dtype>*>& bottom,
-      vector<Blob<Dtype>*>* top);
+      const vector<Blob<Dtype>*>& top);
 
-  virtual inline const char* type() const { return "LIBSVM_DATA"; }
+  virtual inline const char* type() const { return "LIBSVMData"; }
 //  virtual inline LayerParameter_LayerType type() const {
 //    return LayerParameter_LayerType_LIBSVM_DATA;
 //  }

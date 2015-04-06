@@ -22,6 +22,7 @@ template <typename Dtype>
 void read_feature_and_label_form_string_or_die(
     string line, int channels, Datum* feature, Dtype* label) {
   // buff
+  //LOG(INFO) << line;
   vector<string> cells, indval;
 
   // init feature datum
@@ -96,9 +97,13 @@ LIBSVMDataLayer<Dtype>::~LIBSVMDataLayer<Dtype>() {
 
 template <typename Dtype>
 void LIBSVMDataLayer<Dtype>::DataLayerSetUp(const vector<Blob<Dtype>*>& bottom,
-      vector<Blob<Dtype>*>* top) {
+      const vector<Blob<Dtype>*>& top){
+
+
+  LOG(INFO) << "luolei into libsvm datalayersetup";
   // Number of features
   unsigned int channels = this->layer_param_.libsvm_data_param().channels();
+  LOG(INFO) << "number of features " << channels;
 
   // Read data from file. Features and labels will be stored in data_
   // and labels_ respectively.
@@ -127,15 +132,18 @@ void LIBSVMDataLayer<Dtype>::DataLayerSetUp(const vector<Blob<Dtype>*>& bottom,
 
   // feature
   const int batch_size = this->layer_param_.libsvm_data_param().batch_size();
-  (*top)[0]->Reshape(batch_size, channels, 1, 1);
+  top[0]->Reshape(batch_size, channels, 1, 1);
   this->prefetch_data_.Reshape(batch_size, channels, 1, 1);
+  this->transformed_data_.Reshape(1, channels, 1, 1);
   // label
-  (*top)[1]->Reshape(batch_size, 1, 1, 1);
+  top[1]->Reshape(batch_size, 1, 1, 1);
   this->prefetch_label_.Reshape(batch_size, 1, 1, 1);
+  this->transformed_data_.Reshape(1, channels, 1, 1);
+  // label
 
-  LOG(INFO) << "output data size: " << (*top)[0]->num() << ","
-      << (*top)[0]->channels() << "," << (*top)[0]->height() << ","
-      << (*top)[0]->width();
+  LOG(INFO) << "output data size: " << top[0]->num() << ","
+      << top[0]->channels() << "," << top[0]->height() << ","
+      << top[0]->width();
 
   // datum size must be set. See BaseDataLayer.
   //this->datum_channels_ = channels;
@@ -156,7 +164,6 @@ void LIBSVMDataLayer<Dtype>::ShuffleAccessOrder() {
 // This function is used to create a thread that prefetches the data.
 template <typename Dtype>
 void LIBSVMDataLayer<Dtype>::InternalThreadEntry() {
-  Datum datum;
   CHECK(this->prefetch_data_.count());
   Dtype* top_data = this->prefetch_data_.mutable_cpu_data();
   Dtype* top_label = this->prefetch_label_.mutable_cpu_data();
@@ -172,7 +179,9 @@ void LIBSVMDataLayer<Dtype>::InternalThreadEntry() {
     Datum * datum_p = data_[pos].get();
     // TODO:do not support transform
     // Apply transformations (scale, mean...) to the data
-    //this->data_transformer_.Transform(item_id, *datum_p, this->mean_, top_data);
+    int offset = this->prefetch_data_.offset(item_id);
+    this->transformed_data_.set_cpu_data(top_data + offset);
+    this->data_transformer_->Transform(*datum_p, &(this->transformed_data_));
 
     top_label[item_id] = labels_[pos];
     // go to the next iter
@@ -189,5 +198,6 @@ void LIBSVMDataLayer<Dtype>::InternalThreadEntry() {
 }
 
 INSTANTIATE_CLASS(LIBSVMDataLayer);
+REGISTER_LAYER_CLASS(LIBSVMData);
 
 }  // namespace caffe

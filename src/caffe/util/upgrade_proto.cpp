@@ -316,6 +316,9 @@ bool UpgradeV0LayerParameter(const V1LayerParameter& v0_layer_connection,
       } else if (type == "infogain_loss") {
         layer_param->mutable_infogain_loss_param()->set_source(
             v0_layer_param.source());
+      } else if (type == "LIBSVM_DATA") {
+        layer_param->mutable_libsvm_data_param()->set_source(
+            v0_layer_param.source());
       } else {
         LOG(ERROR) << "Unknown parameter source for layer type " << type;
         is_fully_compatible = false;
@@ -342,7 +345,11 @@ bool UpgradeV0LayerParameter(const V1LayerParameter& v0_layer_connection,
       } else if (type == "window_data") {
         layer_param->mutable_window_data_param()->set_batch_size(
             v0_layer_param.batchsize());
+      } else if (type == "LIBSVM_DATA") {
+        layer_param->mutable_libsvm_data_param()->set_batch_size(
+            v0_layer_param.batchsize());
       } else {
+
         LOG(ERROR) << "Unknown parameter batchsize for layer type " << type;
         is_fully_compatible = false;
       }
@@ -516,6 +523,8 @@ V1LayerParameter_LayerType UpgradeV0LayerType(const string& type) {
     return V1LayerParameter_LayerType_TANH;
   } else if (type == "window_data") {
     return V1LayerParameter_LayerType_WINDOW_DATA;
+  } else if (type == "LIBSVM_DATA") {
+    return V1LayerParameter_LayerType_LIBSVM_DATA;
   } else {
     LOG(FATAL) << "Unknown layer name: " << type;
     return V1LayerParameter_LayerType_NONE;
@@ -580,6 +589,7 @@ void UpgradeNetDataTransformation(NetParameter* net_param) {
     CONVERT_LAYER_TRANSFORM_PARAM(DATA, Data, data);
     CONVERT_LAYER_TRANSFORM_PARAM(IMAGE_DATA, ImageData, image_data);
     CONVERT_LAYER_TRANSFORM_PARAM(WINDOW_DATA, WindowData, window_data);
+    //CONVERT_LAYER_TRANSFORM_PARAM(LIBSVM_DATA, LIBSVMData, libsvm_data);
   }
 }
 
@@ -820,6 +830,10 @@ bool UpgradeV1LayerParameter(const V1LayerParameter& v1_layer_param,
     layer_param->mutable_window_data_param()->CopyFrom(
         v1_layer_param.window_data_param());
   }
+  if (v1_layer_param.has_libsvm_data_param()) {
+    layer_param->mutable_libsvm_data_param()->CopyFrom(
+        v1_layer_param.libsvm_data_param());
+  }
   if (v1_layer_param.has_transform_param()) {
     layer_param->mutable_transform_param()->CopyFrom(
         v1_layer_param.transform_param());
@@ -915,6 +929,8 @@ const char* UpgradeV1LayerType(const V1LayerParameter_LayerType type) {
     return "TanH";
   case V1LayerParameter_LayerType_WINDOW_DATA:
     return "WindowData";
+  case V1LayerParameter_LayerType_LIBSVM_DATA:
+    return "LIBSVMData";
   case V1LayerParameter_LayerType_THRESHOLD:
     return "Threshold";
   default:
