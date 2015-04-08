@@ -51,10 +51,20 @@ void KaggleRainLossLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
       caffe_set(70 - rain, Dtype(1), h_func_data + i*70 + rain);
   }
 
+  Dtype* cdf = bottom[0]->mutable_cpu_data();
+
+  Dtype last(0);
+  for (int i = 0; i < num; i ++) {
+      for (int j = 0; j < 70; j ++) {
+          cdf[i*70+j] += last;
+          last = cdf[i*70+j];
+      }
+  }
+
   int count = bottom[0]->count();
   caffe_sub(
       count, 
-      bottom[0]->cpu_data(), 
+      cdf,
       h_func_.cpu_data(), 
       diff_.mutable_cpu_data());
 

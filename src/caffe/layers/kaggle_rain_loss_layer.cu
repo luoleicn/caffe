@@ -26,7 +26,7 @@ void KaggleRainLossLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& bottom,
     const vector<Blob<Dtype>*>& top) {
 
   int num = bottom[0]->num();
-  int nthreads = num;
+  //int nthreads = num;
   Dtype* h_func_data = h_func_.mutable_gpu_data();
 
 //  KaggleRainLossForwardGPU<Dtype><<<CAFFE_GET_BLOCKS(nthreads),
@@ -36,6 +36,16 @@ void KaggleRainLossLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& bottom,
       int rain  = bottom[1]->data_at(i, 0, 0, 0);
       caffe_gpu_set(rain, Dtype(0), h_func_data + i*70);
       caffe_gpu_set(70 - rain, Dtype(1), h_func_data + i*70 + rain);
+  }
+
+  Dtype* cdf = bottom[0]->mutable_gpu_data();
+
+  Dtype last(0);
+  for (int i = 0; i < num; i ++) {
+      for (int j = 0; j < 70; j ++) {
+          cdf[i*70+j] += last;
+          last = cdf[i*70+j];
+      }
   }
 
   int count = bottom[0]->count();
