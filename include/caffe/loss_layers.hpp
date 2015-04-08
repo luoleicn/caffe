@@ -327,7 +327,7 @@ class KaggleRainLossLayer : public LossLayer<Dtype> {
 
   Blob<Dtype> diff_;
   Blob<Dtype> h_func_;
-}
+};
 
 /**
  * @brief Computes the hinge loss for a one-of-many classification task.

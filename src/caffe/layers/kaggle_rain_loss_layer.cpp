@@ -33,18 +33,19 @@ void KaggleRainLossLayer<Dtype>::Reshape(
   shape[1] = 70;
   shape[2] = 1;
   shape[3] = 1;
-  h_func_.Reshape(shape());
+  h_func_.Reshape(shape);
 
   diff_.ReshapeLike(*bottom[0]);
 
-  CHECK_EQ(bottom[0]->count(), h_func_->count())
-      << "Inputs must have the same dimension. " << bottom[0]->count() << " != " << h_func.->count();
+  CHECK_EQ(bottom[0]->count(), h_func_.count())
+      << "Inputs must have the same dimension. " << bottom[0]->count() << " != " << h_func_.count();
 }
 
 template <typename Dtype>
 void KaggleRainLossLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
     const vector<Blob<Dtype>*>& top) {
 
+  Dtype* h_func_data = h_func_.mutable_cpu_data();
   int num = bottom[0]->num();
   caffe_set(num * 70, Dtype(0), h_func_data);
   for (int i = 0; i < num; i ++) {
@@ -52,16 +53,16 @@ void KaggleRainLossLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
       caffe_set(70 - rain, Dtype(1), h_func_data + i*70 + rain);
   }
 
+  int count = bottom[0]->count();
   caffe_sub(
       count, 
       bottom[0]->cpu_data(), 
-      h_func_->cpu_data(), 
+      h_func_.cpu_data(), 
       diff_.mutable_cpu_data());
 
   Dtype dot = caffe_cpu_dot(count, diff_.cpu_data(), diff_.cpu_data());
   Dtype loss = dot / bottom[0]->num() / Dtype(70);
   top[0]->mutable_cpu_data()[0] = loss;
-  }
 }
 
 template <typename Dtype>
@@ -71,12 +72,11 @@ void KaggleRainLossLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
   if (propagate_down[0]) {
       const Dtype alpha = top[0]->cpu_diff()[0] / bottom[0]->num();
       caffe_cpu_axpby(
-          bottom[i]->count(),              // count
+          bottom[0]->count(),              // count
           alpha,                              // alpha
           diff_.cpu_data(),                   // a
           Dtype(0),                           // beta
-          bottom[i]->mutable_cpu_diff());  // b
-  }
+          bottom[0]->mutable_cpu_diff());  // b
   }
 }
 

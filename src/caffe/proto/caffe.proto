@@ -790,6 +790,7 @@ message V1LayerParameter {
     DROPOUT = 6;
     DUMMY_DATA = 32;
     EUCLIDEAN_LOSS = 7;
+    KAGGLERAIN_LOSS = 41;
     ELTWISE = 25;
     EXP = 38;
     FLATTEN = 8;
