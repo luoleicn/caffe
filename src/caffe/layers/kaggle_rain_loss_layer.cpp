@@ -36,7 +36,8 @@ void KaggleRainLossLayer<Dtype>::Reshape(
   h_func_.Reshape(shape);
   cdf_.Reshape(shape);
 
-  diff_.ReshapeLike(*bottom[0]);
+  //diff_.ReshapeLike(*bottom[0]);
+  diff_.Reshape(shape);
 }
 
 template <typename Dtype>

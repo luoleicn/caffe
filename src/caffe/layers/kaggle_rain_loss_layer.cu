@@ -26,35 +26,48 @@ void KaggleRainLossLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& bottom,
     const vector<Blob<Dtype>*>& top) {
 
   int num = bottom[0]->num();
-  //int nthreads = num;
   Dtype* h_func_data = h_func_.mutable_gpu_data();
-
-//  KaggleRainLossForwardGPU<Dtype><<<CAFFE_GET_BLOCKS(nthreads),
-//      CAFFE_CUDA_NUM_THREADS>>>(nthreads, bottom[1].gpu_data(), h_func_data);
 
   for (int i = 0; i < num; i ++) {
       int rain  = bottom[1]->data_at(i, 0, 0, 0);
+      //LOG(INFO) << "rain i=" << i << " rain=" << rain;
       caffe_gpu_set(rain, Dtype(0), h_func_data + i*70);
       caffe_gpu_set(70 - rain, Dtype(1), h_func_data + i*70 + rain);
   }
 
   Dtype* cdf = cdf_.mutable_cpu_data();
-  memcpy(cdf, bottom[0]->cpu_data(), bottom[0]->count()*sizeof(Dtype));
-
+  //memset(cdf, Dtype(1), cdf->count()*sizeof(Dtype));
   for (int i = 0; i < num; i ++) {
       Dtype last(0);
       for (int j = 0; j < 70; j ++) {
-          cdf[i*70+j] += last;
-          last = cdf[i*70+j];
+	      if (j <= 10) {
+		      cdf[i*70+j] = bottom[0]->data_at(i, j, 0, 0) + last;
+		      last = cdf[i*70+j];
+	      }
+	      else {
+		      cdf[i*70+j] = Dtype(1);
+	      }
+	      //LOG(INFO) << "i=" << i << " j=" << j << " cdf=" << cdf[i*70+j];
       }
   }
 
-  int count = bottom[0]->count();
+
+  int count = cdf_.count();
   caffe_gpu_sub(
       count, 
       cdf_.gpu_data(), 
       h_func_.gpu_data(), 
       diff_.mutable_gpu_data());
+
+//  for (int i = 0; i < num; i ++) {
+//      for (int j = 0; j < 70; j ++) {
+//	      if (j <= 10) {
+//		      LOG(INFO) << "i=" << i << " j=" << j << " cdf=" << cdf[i*70+j]
+//			      << " h_func_=" << h_func_.data_at(i, j, 0, 0)
+//			      << " diff=" << diff_.data_at(i, j, 0, 0);
+//	      }
+//      }
+//  }
 
   Dtype dot;
   caffe_gpu_dot(count, diff_.gpu_data(), diff_.gpu_data(), &dot);
@@ -68,18 +81,28 @@ void KaggleRainLossLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
 
   if (propagate_down[0]) {
       const Dtype alpha = top[0]->cpu_diff()[0] / bottom[0]->num() / Dtype(35);
-      caffe_gpu_axpby(
-          bottom[0]->count(),              // count
-          alpha,                              // alpha
-          diff_.gpu_data(),                   // a
-          Dtype(0),                           // beta
-          bottom[0]->mutable_gpu_diff());  // b
+      //caffe_gpu_axpby(
+      //    bottom[0]->count(),              // count
+      //    alpha,                              // alpha
+      //    diff_.gpu_data(),                   // a
+      //    Dtype(0),                           // beta
+      //    bottom[0]->mutable_gpu_diff());  // b
 
       Dtype* ret_diff = bottom[0]->mutable_cpu_diff();
-      Dtype last(0);
-      for (int i = 69; i >= 0; i --) {
-          ret_diff[i] += last;
-          last = ret_diff[i];
+      int num = bottom[0]->num();
+      for (int i = 0; i < num; i ++) {
+	      Dtype last(0);
+	      for (int j = 69; j >= 0; j --) {
+		      if (j > 10) {
+			      continue;
+		      }
+		      else {
+			      ret_diff[i*10+j] = last + diff_.data_at(i, j, 0, 0);
+			      ret_diff[i*10+j] *= alpha;
+
+			      last += diff_.data_at(i, j, 0, 0);
+		      }
+	      }
       }
 
   }
