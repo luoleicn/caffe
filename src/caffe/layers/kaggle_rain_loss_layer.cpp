@@ -37,8 +37,6 @@ void KaggleRainLossLayer<Dtype>::Reshape(
 
   diff_.ReshapeLike(*bottom[0]);
 
-  CHECK_EQ(bottom[0]->count(), h_func_.count())
-      << "Inputs must have the same dimension. " << bottom[0]->count() << " != " << h_func_.count();
 }
 
 template <typename Dtype>
