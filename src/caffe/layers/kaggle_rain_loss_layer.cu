@@ -67,13 +67,21 @@ void KaggleRainLossLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
     const vector<bool>& propagate_down, const vector<Blob<Dtype>*>& bottom) {
 
   if (propagate_down[0]) {
-      const Dtype alpha = top[0]->cpu_diff()[0] / bottom[0]->num();
+      const Dtype alpha = top[0]->cpu_diff()[0] / bottom[0]->num() / Dtype(35);
       caffe_gpu_axpby(
           bottom[0]->count(),              // count
           alpha,                              // alpha
           diff_.gpu_data(),                   // a
           Dtype(0),                           // beta
           bottom[0]->mutable_gpu_diff());  // b
+
+      Dtype* ret_diff = bottom[0]->mutable_cpu_diff();
+      Dtype last(0);
+      for (int i = 69; i >= 0; i --) {
+          ret_diff[i] += last;
+          last = ret_diff[i];
+      }
+
   }
 }
 
