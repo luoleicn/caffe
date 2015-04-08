@@ -327,6 +327,7 @@ class KaggleRainLossLayer : public LossLayer<Dtype> {
 
   Blob<Dtype> diff_;
   Blob<Dtype> h_func_;
+  Blob<Dtype> cdf_;
 };
 
 /**

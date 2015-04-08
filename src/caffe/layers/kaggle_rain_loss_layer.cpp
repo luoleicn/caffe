@@ -34,9 +34,9 @@ void KaggleRainLossLayer<Dtype>::Reshape(
   shape[2] = 1;
   shape[3] = 1;
   h_func_.Reshape(shape);
+  cdf_.Reshape(shape);
 
   diff_.ReshapeLike(*bottom[0]);
-
 }
 
 template <typename Dtype>
@@ -51,10 +51,11 @@ void KaggleRainLossLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
       caffe_set(70 - rain, Dtype(1), h_func_data + i*70 + rain);
   }
 
-  Dtype* cdf = bottom[0]->mutable_cpu_data();
+  Dtype* cdf = cdf_.mutable_cpu_data();
+  memcpy(cdf, bottom[0]->cpu_data(), bottom[0]->count()*sizeof(Dtype));
 
-  Dtype last(0);
   for (int i = 0; i < num; i ++) {
+      Dtype last(0);
       for (int j = 0; j < 70; j ++) {
           cdf[i*70+j] += last;
           last = cdf[i*70+j];
@@ -64,7 +65,7 @@ void KaggleRainLossLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
   int count = bottom[0]->count();
   caffe_sub(
       count, 
-      cdf,
+      cdf_.cpu_data(),
       h_func_.cpu_data(), 
       diff_.mutable_cpu_data());
 
