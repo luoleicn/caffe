@@ -30,7 +30,7 @@ void KaggleRainLossLayer<Dtype>::Reshape(
 
   vector<int> shape(4);
   shape[0] = bottom[0]->num();
-  shape[1] = 70;
+  shape[1] = 71;//71而不是70
   shape[2] = 1;
   shape[3] = 1;
   h_func_.Reshape(shape);

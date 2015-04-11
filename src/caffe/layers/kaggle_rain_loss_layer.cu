@@ -15,8 +15,8 @@ __global__ void KaggleRainLossForwardGPU(const int nthreads,
       int rain  = (int)(bottom_data[i]);
       const Dtype d0(0); 
       const Dtype d1(1); 
-      caffe_gpu_set(rain, d0, h_func_data + i*70);
-      caffe_gpu_set(70 - rain, d1, h_func_data + i*70 + rain);
+      caffe_gpu_set(rain, d0, h_func_data + i*71);
+      caffe_gpu_set(71 - rain, d1, h_func_data + i*71 + rain);
   }
 
 }
@@ -25,27 +25,32 @@ template <typename Dtype>
 void KaggleRainLossLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& bottom,
     const vector<Blob<Dtype>*>& top) {
 
+  const int LEARNED_CLASS = 11;
+
   int num = bottom[0]->num();
   Dtype* h_func_data = h_func_.mutable_gpu_data();
 
   for (int i = 0; i < num; i ++) {
       int rain  = bottom[1]->data_at(i, 0, 0, 0);
       //LOG(INFO) << "rain i=" << i << " rain=" << rain;
-      caffe_gpu_set(rain, Dtype(0), h_func_data + i*70);
-      caffe_gpu_set(70 - rain, Dtype(1), h_func_data + i*70 + rain);
+      caffe_gpu_set(rain, Dtype(0), h_func_data + i*71);
+      caffe_gpu_set(71 - rain, Dtype(1), h_func_data + i*71 + rain);
   }
 
   Dtype* cdf = cdf_.mutable_cpu_data();
   //memset(cdf, Dtype(1), cdf->count()*sizeof(Dtype));
   for (int i = 0; i < num; i ++) {
       Dtype last(0);
-      for (int j = 0; j < 70; j ++) {
-	      if (j <= 10) {
-		      cdf[i*70+j] = bottom[0]->data_at(i, j, 0, 0) + last;
-		      last = cdf[i*70+j];
+      for (int j = 0; j < 71; j ++) {
+	      if (j == 70) {
+		      cdf[i*71+j] = Dtype(1);
+	      }
+	      else if (j < LEARNED_CLASS) {
+		      cdf[i*71+j] = bottom[0]->data_at(i, j, 0, 0) + last;
+		      last = cdf[i*71+j];
 	      }
 	      else {
-		      cdf[i*70+j] = Dtype(1);
+		      cdf[i*71+j] = Dtype(1);
 	      }
 	      //LOG(INFO) << "i=" << i << " j=" << j << " cdf=" << cdf[i*70+j];
       }
@@ -59,26 +64,32 @@ void KaggleRainLossLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& bottom,
       h_func_.gpu_data(), 
       diff_.mutable_gpu_data());
 
-//  for (int i = 0; i < num; i ++) {
-//      for (int j = 0; j < 70; j ++) {
-//	      if (j <= 10) {
-//		      LOG(INFO) << "i=" << i << " j=" << j << " cdf=" << cdf[i*70+j]
-//			      << " h_func_=" << h_func_.data_at(i, j, 0, 0)
-//			      << " diff=" << diff_.data_at(i, j, 0, 0);
-//	      }
-//      }
-//  }
 
   Dtype dot;
   caffe_gpu_dot(count, diff_.gpu_data(), diff_.gpu_data(), &dot);
   Dtype loss = dot / bottom[0]->num() / Dtype(70);
   top[0]->mutable_cpu_data()[0] = loss;
+  
+  //if (loss < 0.005) {
+  //        for (int i = 0; i < num; i ++) {
+  //      	  for (int j = 0; j < 70; j ++) {
+  //      		  if (j <= 10) {
+  //      			  LOG(INFO) << "i=" << i << " j=" << j << " cdf=" << cdf[i*71+j]
+  //      				  << " h_func_=" << h_func_.data_at(i, j, 0, 0)
+  //      				  << " diff=" << diff_.data_at(i, j, 0, 0);
+  //      		  }
+  //      	  }
+  //        }
+  //        LOG(INFO) << " loss " << loss << " dot" << dot;
+  //        exit(-1);
+  //}
 }
 
 template <typename Dtype>
 void KaggleRainLossLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
     const vector<bool>& propagate_down, const vector<Blob<Dtype>*>& bottom) {
 
+	const int LEARNED_CLASS = 11;
   if (propagate_down[0]) {
       const Dtype alpha = top[0]->cpu_diff()[0] / bottom[0]->num() / Dtype(35);
       //caffe_gpu_axpby(
@@ -92,13 +103,13 @@ void KaggleRainLossLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
       int num = bottom[0]->num();
       for (int i = 0; i < num; i ++) {
 	      Dtype last(0);
-	      for (int j = 69; j >= 0; j --) {
-		      if (j > 10) {
-			      continue;
+	      for (int j = 70; j >= 0; j --) {
+		      if (j >= LEARNED_CLASS) {
+			      ret_diff[i*LEARNED_CLASS+j] = Dtype(0);
 		      }
 		      else {
-			      ret_diff[i*10+j] = last + diff_.data_at(i, j, 0, 0);
-			      ret_diff[i*10+j] *= alpha;
+			      ret_diff[i*LEARNED_CLASS+j] = last + diff_.data_at(i, j, 0, 0);
+			      ret_diff[i*LEARNED_CLASS+j] *= alpha;
 
 			      last += diff_.data_at(i, j, 0, 0);
 		      }
