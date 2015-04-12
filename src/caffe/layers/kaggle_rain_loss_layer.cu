@@ -117,11 +117,12 @@ void KaggleRainLossLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
 
       Dtype* ret_diff = bottom[0]->mutable_cpu_diff();
       int num = bottom[0]->num();
+      memset(ret_diff, 0, sizeof(Dtype) * num * LEARNED_CLASS);
       for (int i = 0; i < num; i ++) {
 	      Dtype last(0);
 	      for (int j = 70; j >= 0; j --) {
 		      if (j >= LEARNED_CLASS) {
-			      ret_diff[i*LEARNED_CLASS+j] = Dtype(0);
+			      continue;
 		      }
 		      else {
 			      ret_diff[i*LEARNED_CLASS+j] = last + diff_.data_at(i, j, 0, 0);
