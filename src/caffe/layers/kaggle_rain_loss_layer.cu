@@ -28,6 +28,22 @@ void KaggleRainLossLayer<Dtype>::Forward_gpu(const vector<Blob<Dtype>*>& bottom,
   const int LEARNED_CLASS = 11;
 
   int num = bottom[0]->num();
+  Dtype* bottom_data = bottom[0]->mutable_cpu_data();
+  for (int i = 0; i < num; i ++) {
+      Dtype sum(0);
+      for (int j = 0; j < LEARNED_CLASS; j ++) {
+	      sum += bottom_data[i*LEARNED_CLASS + j];
+      }
+      for (int j = 0; j < LEARNED_CLASS; j ++) {
+	      if (sum == 0) {
+		      //LOG(INFO) << "i=" << i << " j=" << j << " prob " << bottom_data[i*LEARNED_CLASS + j]; 
+		      bottom_data[i*LEARNED_CLASS + j] = 1.0 / LEARNED_CLASS;
+	      }
+	      else {
+		      bottom_data[i*LEARNED_CLASS + j] /= sum;
+	      }
+      }
+  }
   Dtype* h_func_data = h_func_.mutable_gpu_data();
 
   for (int i = 0; i < num; i ++) {
